@@ -24,19 +24,34 @@ export default function CostTracker() {
     fetchData();
   }, [sessionId]);
 
-  const fetchData = async () => {
+  const fetchCoreData = async () => {
     try {
-      const [entriesRes, summaryRes, adviceRes] = await Promise.all([
+      const [entriesRes, summaryRes] = await Promise.all([
         api.get(`/costs/entries?session_id=${sessionId}`),
-        api.get(`/costs/summary?session_id=${sessionId}`),
-        api.get(`/costs/ai-advice?session_id=${sessionId}&language=${language}`)
+        api.get(`/costs/summary?session_id=${sessionId}`)
       ]);
       setEntries(entriesRes.data.entries);
       setSummary(summaryRes.data.summary);
-      setAiAdvice(adviceRes.data.advice || '');
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const fetchAiAdvice = async () => {
+    setLoadingAdvice(true);
+    try {
+      const adviceRes = await api.get(`/costs/ai-advice?session_id=${sessionId}&language=${language}`);
+      setAiAdvice(adviceRes.data.advice || '');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingAdvice(false);
+    }
+  };
+
+  const fetchData = () => {
+    fetchCoreData();
+    fetchAiAdvice();
   };
 
   const [form, setForm] = useState({ category: CATEGORIES[0], item_name: '', quantity: '', unit: 'kg', cost_per_unit: '' });
