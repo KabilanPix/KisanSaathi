@@ -1,0 +1,13 @@
+{
+  "name": "kisansaathi-monorepo",
+  "version": "1.0.0",
+  "description": "Root package.json for monolithic deployment",
+  "scripts": {
+    "install": "npm --prefix server install && npm --prefix client install",
+    "build": "npm --prefix client run build",
+    "start": "npm --prefix server start"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
