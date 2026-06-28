@@ -59,15 +59,15 @@ export default function Advisory() {
           <Sprout className="text-white w-6 h-6" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('AI Crop Advisory')}</h1>
-          <p className="text-sm text-gray-500">{t('Powered by Gemini - Ask in your language')}</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{t('AI Crop Advisory')}</h1>
+          <p className="text-xs sm:text-sm text-gray-500">{t('Powered by Gemini - Ask in your language')}</p>
         </div>
       </div>
 
       <div className="flex-1 bg-gray-50 overflow-y-auto p-4 border-x border-gray-100 space-y-4">
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] rounded-2xl p-4 flex gap-3 shadow-sm ${
+            <div className={`max-w-[90%] sm:max-w-[80%] rounded-2xl p-3 sm:p-4 flex gap-2 sm:gap-3 shadow-sm ${
               msg.role === 'user' ? 'bg-primary text-white rounded-tr-sm' : 'bg-white text-gray-800 rounded-tl-sm border border-gray-100'
             }`}>
               {msg.role === 'assistant' && <Bot className="w-6 h-6 shrink-0 mt-1 text-primary" />}

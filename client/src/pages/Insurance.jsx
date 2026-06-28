@@ -47,12 +47,12 @@ export default function Insurance() {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div className="flex items-center gap-3 mb-6">
-        <ShieldAlert className="w-10 h-10 text-amber-600" />
-        <h1 className="text-3xl font-bold text-gray-900">{t('Crop Insurance Advisor')}</h1>
+        <ShieldAlert className="w-8 h-8 sm:w-10 sm:h-10 text-amber-600 shrink-0" />
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('Crop Insurance Advisor')}</h1>
       </div>
 
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('State')}</label>
             <input type="text" list="states-list" required value={form.state} 
@@ -107,8 +107,8 @@ export default function Insurance() {
 
       {!loading && advice && (
         <div className="bg-amber-50 rounded-2xl p-6 border border-amber-200">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-amber-900">{t('Your Insurance Guide')}</h2>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+            <h2 className="text-lg sm:text-xl font-bold text-amber-900">{t('Your Insurance Guide')}</h2>
             {advice.risk_level && (
               <span className={`px-4 py-1 rounded-full text-sm font-bold shadow-sm border ${
                 advice.risk_level === 'High' ? 'bg-red-100 text-red-800 border-red-200' :

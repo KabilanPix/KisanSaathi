@@ -37,17 +37,17 @@ export default function MandiPriceCard({ data }) {
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow relative">
-      <div className="flex justify-between items-start mb-4">
-        <div className="pr-12">
+      <div className="flex flex-col sm:flex-row justify-between items-start mb-4 gap-2">
+        <div className="pr-10 sm:pr-12">
           <h3 className="text-lg font-bold text-gray-800">{data.commodity}</h3>
           <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-            <MapPin className="w-4 h-4" />
-            {data.market}, {data.district}
+            <MapPin className="w-4 h-4 shrink-0" />
+            <span className="truncate">{data.market}, {data.district}</span>
           </p>
         </div>
         
         {msp && (
-          <div className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${
+          <div className={`px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs font-semibold flex items-center gap-1 shrink-0 ${
             isAboveMsp ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
           }`}>
             {isAboveMsp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
@@ -64,7 +64,7 @@ export default function MandiPriceCard({ data }) {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-4 mb-4">
         <div className="bg-gray-50 p-3 rounded-lg">
           <p className="text-xs text-gray-500 mb-1">{t('Modal Price')}</p>
           <p className="text-xl font-bold text-primary">₹{(data.modal_price / 100).toFixed(2)}<span className="text-sm font-normal text-gray-500">/kg</span></p>

@@ -38,8 +38,8 @@ export default function Home() {
 
   return (
     <div className="py-8">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">{t('Empowering Indian Farmers')}</h1>
+      <div className="text-center mb-8 sm:mb-12 px-2 sm:px-0">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4 leading-tight">{t('Empowering Indian Farmers')}</h1>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
           {t('KisanSaathi is your one-stop platform for live mandi prices, AI-driven farming advice, insurance guidance, and expense tracking.')}
         </p>
@@ -47,7 +47,7 @@ export default function Home() {
 
       <WeatherWidget />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 max-w-4xl mx-auto px-2 sm:px-0">
         {features.map((f, i) => (
           <Link key={i} to={f.link} className="block group">
             <div className={`p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all h-full ${f.color}`}>

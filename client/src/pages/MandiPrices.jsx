@@ -59,12 +59,12 @@ export default function MandiPrices() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">{t('Live Mandi Prices')}</h1>
+      <div className="flex justify-between items-center px-1 sm:px-0">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('Live Mandi Prices')}</h1>
       </div>
       
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        <form onSubmit={handleSearch} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
           <div>
             <SearchableSelect 
               label={t('State')}

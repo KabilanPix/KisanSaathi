@@ -91,9 +91,9 @@ export default function CostTracker() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      <div className="flex items-center gap-3 mb-6">
-        <Calculator className="w-10 h-10 text-purple-600" />
-        <h1 className="text-3xl font-bold text-gray-900">{t('Input Cost Tracker')}</h1>
+      <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+        <Calculator className="w-8 h-8 sm:w-10 sm:h-10 text-purple-600 shrink-0" />
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('Input Cost Tracker')}</h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -111,7 +111,7 @@ export default function CostTracker() {
                 <label className="block text-sm text-gray-700 mb-1">{t('Item Name')}</label>
                 <input type="text" required className="w-full p-2 border rounded" value={form.item_name} onChange={e => setForm({...form, item_name: e.target.value})} placeholder={t("e.g. Urea")} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-700 mb-1">{t('Quantity')}</label>
                   <input type="number" required min="0.1" step="0.1" className="w-full p-2 border rounded" value={form.quantity} onChange={e => setForm({...form, quantity: e.target.value})} />
@@ -151,7 +151,7 @@ export default function CostTracker() {
         </div>
 
         <div className="lg:col-span-2 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="bg-red-50 p-6 rounded-2xl border border-red-100">
               <p className="text-red-800 text-sm font-semibold mb-1">{t('Total Expenses')}</p>
               <p className="text-3xl font-bold text-red-900">₹{totalCost.toFixed(2)}</p>
