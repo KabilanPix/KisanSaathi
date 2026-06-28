@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
-const defaultModel = genAI ? genAI.getGenerativeModel({ model: "gemini-3-flash-preview" }) : null;
+const defaultModel = genAI ? genAI.getGenerativeModel({ model: "gemini-2.5-flash" }) : null;
 
 const LANG_MAP = {
   en: 'English', hi: 'Hindi', mr: 'Marathi', pa: 'Punjabi', ta: 'Tamil', te: 'Telugu', kn: 'Kannada', bn: 'Bengali', ml: 'Malayalam'
@@ -30,7 +30,7 @@ export async function getAdvisory(question, context, language, history = []) {
   }
 
   const model = genAI.getGenerativeModel({
-    model: "gemini-3-flash-preview",
+    model: "gemini-2.5-flash",
     systemInstruction: systemInstruction
   });
 
@@ -64,7 +64,7 @@ export async function getInsuranceAdvice(state, district, crop, season, acres, l
 
   const fullLangName = LANG_MAP[language] || 'Hindi';
 
-  const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
   let prompt = `You are KisanSaathi, an AI assistant for Indian farmers. Respond in ${fullLangName}.
   A farmer in ${district ? `${district}, ` : ''}${state} is growing ${crop} in ${season} season on ${acres} acres.
   Explain: 1) Which PM Fasal Bima Yojana scheme applies, 2) Estimated premium, 
@@ -105,7 +105,7 @@ export async function getWeatherRecommendation(temp, conditionDescription, langu
   }
 
   const fullLangName = LANG_MAP[language] || 'Hindi';
-  const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   const prompt = `You are KisanSaathi, an AI agricultural expert. 
 Current weather for the farmer: Temperature is ${temp}°C, Condition is: ${conditionDescription}.
