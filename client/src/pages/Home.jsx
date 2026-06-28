@@ -60,6 +60,13 @@ export default function Home() {
           </Link>
         ))}
       </div>
+
+      <div className="mt-10 text-center">
+        <a href="https://t.me/MandiPrice_bot" target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-sm text-gray-500 hover:text-blue-600 transition-colors">
+          <MessageSquareText className="w-4 h-4 mr-1.5" />
+          {t('Also available on Telegram:')} <span className="font-medium ml-1 text-blue-600">@MandiPrice_bot</span>
+        </a>
+      </div>
     </div>
   );
 }
