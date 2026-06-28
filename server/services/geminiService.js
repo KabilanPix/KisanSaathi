@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
-const defaultModel = genAI ? genAI.getGenerativeModel({ model: "gemini-2.5-flash" }) : null;
+const defaultModel = genAI ? genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite" }) : null;
 
 const LANG_MAP = {
   en: 'English', hi: 'Hindi', mr: 'Marathi', pa: 'Punjabi', ta: 'Tamil', te: 'Telugu', kn: 'Kannada', bn: 'Bengali', ml: 'Malayalam'
@@ -30,7 +30,7 @@ export async function getAdvisory(question, context, language, history = []) {
   }
 
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
+    model: "gemini-3.1-flash-lite",
     systemInstruction: systemInstruction
   });
 
@@ -64,7 +64,10 @@ export async function getInsuranceAdvice(state, district, crop, season, acres, l
 
   const fullLangName = LANG_MAP[language] || 'Hindi';
 
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const model = genAI.getGenerativeModel({ 
+    model: "gemini-3.1-flash-lite",
+    generationConfig: { responseMimeType: "application/json" }
+  });
   let prompt = `You are KisanSaathi, an AI assistant for Indian farmers. Respond in ${fullLangName}.
   A farmer in ${district ? `${district}, ` : ''}${state} is growing ${crop} in ${season} season on ${acres} acres.
   Explain: 1) Which PM Fasal Bima Yojana scheme applies, 2) Estimated premium, 
@@ -85,7 +88,6 @@ export async function getInsuranceAdvice(state, district, crop, season, acres, l
   try {
     const result = await model.generateContent(prompt);
     let jsonStr = result.response.text().trim();
-    if (jsonStr.startsWith('```json')) jsonStr = jsonStr.replace(/^```json/, '').replace(/```$/, '').trim();
     return jsonStr;
   } catch (error) {
     console.error('Gemini error:', error.message);
@@ -105,7 +107,7 @@ export async function getWeatherRecommendation(temp, conditionDescription, langu
   }
 
   const fullLangName = LANG_MAP[language] || 'Hindi';
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite" });
 
   const prompt = `You are KisanSaathi, an AI agricultural expert. 
 Current weather for the farmer: Temperature is ${temp}°C, Condition is: ${conditionDescription}.
@@ -126,7 +128,10 @@ export async function parseTelegramQuery(text) {
   if (!genAI) {
     return null;
   }
-  const model = defaultModel;
+  const model = genAI.getGenerativeModel({ 
+    model: "gemini-3.1-flash-lite",
+    generationConfig: { responseMimeType: "application/json" }
+  });
 
   const prompt = `You are an AI assistant for an Indian agriculture Telegram bot.
 A user sent the following message: "${text}"
@@ -142,8 +147,6 @@ Return ONLY a raw JSON object with no markdown formatting or backticks, exactly 
   try {
     const result = await model.generateContent(prompt);
     let jsonStr = result.response.text().trim();
-    // Clean up potential markdown formatting
-    if (jsonStr.startsWith('```json')) jsonStr = jsonStr.replace(/```json/g, '').replace(/```/g, '').trim();
     return JSON.parse(jsonStr);
   } catch (error) {
     console.error('Gemini parseTelegramQuery error:', error.message);
