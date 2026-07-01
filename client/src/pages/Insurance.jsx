@@ -6,6 +6,10 @@ import toast from 'react-hot-toast';
 import { ShieldAlert } from 'lucide-react';
 import { useTranslation } from '../hooks/useTranslation';
 import indiaData from '../data/states.json';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 
 export default function Insurance() {
   const { t } = useTranslation();
@@ -119,8 +123,8 @@ export default function Insurance() {
               </span>
             )}
           </div>
-          <div className="text-amber-900 whitespace-pre-wrap leading-relaxed">
-            {advice.advice}
+          <div className="text-amber-900 prose prose-sm sm:prose-base max-w-none prose-headings:text-amber-900 prose-a:text-amber-700 prose-strong:text-amber-900 overflow-hidden">
+            <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{advice.advice}</ReactMarkdown>
           </div>
         </div>
       )}

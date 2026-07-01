@@ -1,4 +1,4 @@
-import { getInsuranceAdvice } from '../services/geminiService.js';
+import { getInsuranceAdvice } from '../services/bedrockService.js';
 import axios from 'axios';
 
 // STATE_COORDS removed in favor of OpenStreetMap Geocoding

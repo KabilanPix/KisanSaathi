@@ -5,6 +5,10 @@ import VoiceInput from '../components/VoiceInput';
 import { Send, User, Bot, Sprout } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslation } from '../hooks/useTranslation';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 
 export default function Advisory() {
   const { t } = useTranslation();
@@ -71,7 +75,9 @@ export default function Advisory() {
               msg.role === 'user' ? 'bg-primary text-white rounded-tr-sm' : 'bg-white text-gray-800 rounded-tl-sm border border-gray-100'
             }`}>
               {msg.role === 'assistant' && <Bot className="w-6 h-6 shrink-0 mt-1 text-primary" />}
-              <div className="whitespace-pre-wrap">{msg.content}</div>
+              <div className="prose prose-sm sm:prose-base max-w-none break-words overflow-hidden">
+                <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{msg.content}</ReactMarkdown>
+              </div>
               {msg.role === 'user' && <User className="w-6 h-6 shrink-0 mt-1" />}
             </div>
           </div>

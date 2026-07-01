@@ -6,6 +6,10 @@ import toast from 'react-hot-toast';
 import { useTranslation } from '../hooks/useTranslation';
 import { useLanguage } from '../hooks/useLanguage';
 import { Sparkles } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 
 const CATEGORIES = ['Seeds', 'Fertilizer', 'Pesticides', 'Labour', 'Irrigation', 'Machinery', 'Other'];
 const COLORS = ['#166534', '#15803d', '#16a34a', '#22c55e', '#4ade80', '#86efac', '#bbf7d0'];
@@ -196,8 +200,8 @@ export default function CostTracker() {
               <h2 className="text-xl font-bold text-purple-900">{t('AI Cost Optimization')}</h2>
             </div>
             {aiAdvice ? (
-              <div className="text-purple-900 whitespace-pre-wrap leading-relaxed text-sm md:text-base">
-                {aiAdvice}
+              <div className="text-purple-900 prose prose-sm sm:prose-base max-w-none prose-headings:text-purple-900 prose-a:text-purple-700 prose-strong:text-purple-900 overflow-hidden">
+                <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{aiAdvice}</ReactMarkdown>
               </div>
             ) : (
               <p className="text-purple-600 italic text-sm">{t('Loading AI suggestions...')}</p>

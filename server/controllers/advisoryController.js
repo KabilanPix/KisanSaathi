@@ -1,4 +1,4 @@
-import { getAdvisory } from '../services/geminiService.js';
+import { getAdvisory } from '../services/bedrockService.js';
 import db from '../db/index.js';
 import crypto from 'crypto';
 import axios from 'axios';

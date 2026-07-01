@@ -1,6 +1,6 @@
 import db from '../db/index.js';
 import crypto from 'crypto';
-import { getCostTrackerAdvice } from '../services/geminiService.js';
+import { getCostTrackerAdvice } from '../services/bedrockService.js';
 
 export const addCostEntry = async (req, res, next) => {
   try {

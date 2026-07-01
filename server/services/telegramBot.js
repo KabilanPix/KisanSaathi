@@ -1,6 +1,6 @@
 import TelegramBot from 'node-telegram-bot-api';
 import axios from 'axios';
-import { parseTelegramQuery, translateTelegramResponse } from './geminiService.js';
+import { parseTelegramQuery, translateTelegramResponse } from './bedrockService.js';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 
@@ -146,6 +146,16 @@ if (bot) {
   });
 
   console.log('✅ Telegram Bot initialized and listening...');
+
+  // Handle graceful shutdown to avoid 409 Conflict on restarts
+  process.once('SIGINT', () => {
+    bot.stopPolling();
+    process.exit(0);
+  });
+  process.once('SIGTERM', () => {
+    bot.stopPolling();
+    process.exit(0);
+  });
 } else {
   console.log('⚠️ TELEGRAM_BOT_TOKEN not found in .env. Telegram bot is disabled.');
 }
