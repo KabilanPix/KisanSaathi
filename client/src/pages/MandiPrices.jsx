@@ -63,6 +63,31 @@ export default function MandiPrices() {
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('Live Mandi Prices')}</h1>
       </div>
       
+      {/* Telegram Bot Promotion Banner */}
+      <div className="bg-gradient-to-r from-blue-50 to-sky-50 border border-blue-100 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm mx-1 sm:mx-0">
+        <div className="flex items-start sm:items-center gap-3">
+          <div className="bg-blue-500 text-white p-2.5 rounded-xl shrink-0">
+            <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.25-5.54 3.69-.52.36-1 .53-1.42.52-.47-.01-1.37-.26-2.03-.48-.82-.27-1.47-.42-1.42-.88.03-.24.35-.49.97-.74 3.79-1.65 6.32-2.74 7.59-3.27 3.61-1.5 4.36-1.76 4.85-1.77.11 0 .35.03.5.16.13.12.17.27.18.42 0 .07-.01.19-.02.26z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 className="font-bold text-blue-900 text-base sm:text-lg">{t('Get Mandi Prices on Telegram')}</h3>
+            <p className="text-sm text-blue-700 mt-0.5">
+              {t('Get instant updates, ask queries and check crop prices directly via our Telegram Bot.')}
+            </p>
+          </div>
+        </div>
+        <a 
+          href="https://t.me/MandiPrice_bot" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-sm hover:shadow transition-all duration-200 shrink-0 text-sm text-center w-full md:w-auto"
+        >
+          {t('Open Telegram Bot')}
+        </a>
+      </div>
+
       <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100">
         <form onSubmit={handleSearch} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 items-end">
           <div>
