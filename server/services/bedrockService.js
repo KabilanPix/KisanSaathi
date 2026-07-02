@@ -1,52 +1,92 @@
-import { BedrockRuntimeClient, ConverseCommand } from "@aws-sdk/client-bedrock-runtime";
+import { BedrockRuntimeClient, ConverseCommand, ConverseStreamCommand } from "@aws-sdk/client-bedrock-runtime";
+import { globalCache } from '../utils/cache.js';
+import {
+  getAdvisorySystemInstruction,
+  getInsuranceAdvicePrompt,
+  getWeatherRecommendationPrompt,
+  getParseTelegramQueryPrompt,
+  getTranslateTelegramResponsePrompt,
+  getCostTrackerAdvicePrompt
+} from './prompts.js';
 
-// The AWS SDK automatically picks up AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY 
-// from your environment variables (.env file).
 const client = new BedrockRuntimeClient({
   region: process.env.AWS_REGION || 'us-east-1',
 });
 
-const MODEL_ID = "amazon.nova-lite-v1:0";
+const DEFAULT_MODEL_ID = "amazon.nova-lite-v1:0";
+const FALLBACK_MODEL_ID = "amazon.titan-text-premier-v1:0";
 
 const LANG_MAP = {
   en: 'English', hi: 'Hindi', mr: 'Marathi', pa: 'Punjabi', ta: 'Tamil', te: 'Telugu', kn: 'Kannada', bn: 'Bengali', ml: 'Malayalam'
 };
 
-async function invokeBedrock(systemText, messages) {
+function sanitizeInput(text) {
+  if (!text) return text;
+  // Basic prompt injection protection
+  return text.replace(/ignore all previous instructions/gi, "[REDACTED]")
+             .replace(/you are now a/gi, "[REDACTED]");
+}
+
+async function withRetry(operation, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      const isThrottling = error.name === 'ThrottlingException' || error.message.includes('ThrottlingException');
+      if (isThrottling && i < maxRetries - 1) {
+        const delay = Math.pow(2, i) * 1000 + Math.random() * 500; // jitter
+        console.warn(`ThrottlingException caught, retrying in ${Math.round(delay)}ms...`);
+        await new Promise(res => setTimeout(res, delay));
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+
+async function invokeBedrock(systemText, messages, modelId = DEFAULT_MODEL_ID, toolConfig = undefined) {
   if (!client) throw new Error("AWS Bedrock client not configured.");
-  const command = new ConverseCommand({
-    modelId: MODEL_ID,
+  let command = new ConverseCommand({
+    modelId: modelId,
     system: systemText ? [{ text: systemText }] : undefined,
-    messages: messages
+    messages: messages,
+    toolConfig: toolConfig
   });
-  const response = await client.send(command);
+  
+  let response;
+  try {
+    response = await withRetry(() => client.send(command));
+  } catch (error) {
+    console.warn(`Primary model ${modelId} failed. Falling back to ${FALLBACK_MODEL_ID}. Error: ${error.message}`);
+    command = new ConverseCommand({
+      modelId: FALLBACK_MODEL_ID,
+      system: systemText ? [{ text: systemText }] : undefined,
+      messages: messages,
+      toolConfig: toolConfig
+    });
+    response = await client.send(command);
+  }
+  
+  // Handle tool use responses if a tool was forced
+  if (toolConfig && response.output?.message?.content) {
+    const toolUse = response.output.message.content.find(c => c.toolUse);
+    if (toolUse) {
+      return toolUse.toolUse.input;
+    }
+  }
+  
   return response.output.message.content[0].text;
 }
 
-export async function getAdvisory(question, context, language, history = []) {
+export async function getAdvisory(question, context, language, history = [], imageBuffer = null, imageFormat = 'jpeg', modelId = DEFAULT_MODEL_ID) {
   if (!client) {
     return "I am currently unable to provide advice as my AI is not configured. Please add the AWS Bedrock API key.";
   }
 
   const fullLangName = LANG_MAP[language] || 'Hindi';
+  const systemInstruction = getAdvisorySystemInstruction(context, fullLangName);
+  const sanitizedQuestion = sanitizeInput(question);
 
-  let systemInstruction = `You are KisanSaathi, an expert agricultural scientist and financial advisor for Indian agriculture, farming, crops, and related policies.
-    Always respond in ${fullLangName}. Provide highly detailed, step-by-step, and comprehensive explanations. Use bold headings, bullet points, and spacing to make your response easy to read.
-    When asked about a crop, cover the entire lifecycle if relevant (land preparation, sowing, irrigation, fertilizers, pest control, and harvesting). Always emphasize maximizing yield and minimizing input costs to ensure income stability. Explain *why* certain actions should be taken, rather than just stating *what* to do.
-    CRITICAL RULE: If the user asks about ANY topic outside of agriculture, farming, crops, or agricultural policies (e.g., tourism, movies, general knowledge), politely refuse to answer and state that you are exclusively an agricultural assistant.
-    If asked about complex policies or highly specific issues you cannot answer reliably, provide the Kisan Call Center (KCC) toll-free number: 1800-180-1551. Let them know they can call to get help in their native language.
-    Context: Farmer is in ${context.state || 'Unknown'}, growing ${context.crop || 'Unknown'}.
-    Current mandi price: ₹${context.price || 'Unknown'}/quintal. MSP: ₹${context.msp || 'Unknown'}/quintal.`;
-
-  if (context.envData) {
-    systemInstruction += `\n\nLIVE WEATHER/SATELLITE DATA FOR ${context.state || 'Unknown'}:
-    - Soil Moisture (0-7cm): ${context.envData.soil_moisture}% 
-    - Recent Daily Rainfall: ${context.envData.precipitation} mm
-    - Max Temperature: ${context.envData.temp}°C
-    If the user asks about weather, rainfall, or if it's okay to plant something, strictly use this LIVE data to form your answer.`;
-  }
-
-  // Ensure first message is user
   let safeHistory = history.map(m => ({
     role: m.role === "assistant" || m.role === "model" ? "assistant" : "user",
     content: [{ text: m.content }]
@@ -56,61 +96,129 @@ export async function getAdvisory(question, context, language, history = []) {
     safeHistory.shift();
   }
 
-  const messages = [...safeHistory, { role: "user", content: [{ text: question }] }];
+  const userContent = [];
+  if (imageBuffer) {
+    userContent.push({
+      image: {
+        format: imageFormat,
+        source: { bytes: imageBuffer }
+      }
+    });
+  }
+  userContent.push({ text: sanitizedQuestion });
+
+  const messages = [...safeHistory, { role: "user", content: userContent }];
 
   try {
-    return await invokeBedrock(systemInstruction, messages);
+    return await invokeBedrock(systemInstruction, messages, modelId);
   } catch (error) {
     console.error('AWS Bedrock error:', error.message);
-    if (error.message.includes('ThrottlingException')) {
-      return `[Mock AI Response - API Quota Exceeded]: For ${context.crop || 'your crop'} in ${context.state || 'your state'}, it's advisable to check the weather before applying inputs. Since you asked "${question}", consider consulting local agriculture extension officers for precise guidance.`;
+    const isThrottling = error.name === 'ThrottlingException' || error.message.includes('ThrottlingException');
+    if (isThrottling) {
+      return `[Mock AI Response - API Quota Exceeded]: For ${context.crop || 'your crop'} in ${context.state || 'your state'}, it's advisable to check the weather before applying inputs. Since you asked "${sanitizedQuestion}", consider consulting local agriculture extension officers for precise guidance.`;
     }
     return "Sorry, I am facing technical difficulties connecting to the AI. Please try again later.";
   }
 }
 
-export async function getInsuranceAdvice(state, district, crop, season, acres, language, envData) {
+export async function* getAdvisoryStream(question, context, language, history = [], imageBuffer = null, imageFormat = 'jpeg', modelId = DEFAULT_MODEL_ID) {
   if (!client) {
-    return JSON.stringify({ risk_level: "Medium", advice: "I am currently unable to provide insurance advice as my AI is not configured." });
+    yield "I am currently unable to provide advice as my AI is not configured.";
+    return;
   }
 
   const fullLangName = LANG_MAP[language] || 'Hindi';
+  const systemInstruction = getAdvisorySystemInstruction(context, fullLangName);
+  const sanitizedQuestion = sanitizeInput(question);
 
-  let prompt = `You are KisanSaathi, an expert agricultural insurance advisor for Indian farmers. Respond in ${fullLangName}. Use markdown formatting with bold headings and bullet points for readability.
-  A farmer in ${district ? `${district}, ` : ''}${state} is growing ${crop} in ${season} season on ${acres} acres.
-  Provide a deep dive into the PMFBY (Pradhan Mantri Fasal Bima Yojana) scheme applicable to them.
-  Detail the following comprehensively:
-  1) Exact PMFBY scheme details for this crop and state.
-  2) Estimated premium calculation based on the acreage.
-  3) Detailed list of required documents and *where* they can obtain them (e.g., 7/12 from Patwari).
-  4) Step-by-step enrollment process.
-  5) Highly detailed claim filing process (timeline, who to contact, how crop cutting experiments work).
-  6) What to do if a claim is delayed or rejected.
-  If asked about extremely specific edge cases, provide the Kisan Call Center (KCC) toll-free number: 1800-180-1551.
-  
-  RETURN YOUR RESPONSE AS RAW JSON WITH NO MARKDOWN FORMATTING OR BACKTICKS AROUND THE ENTIRE OBJECT EXACTLY LIKE THIS:
-  {"risk_level": "High", "advice": "your markdown formatted detailed advice here"}`;
+  let safeHistory = history.map(m => ({
+    role: m.role === "assistant" || m.role === "model" ? "assistant" : "user",
+    content: [{ text: m.content }]
+  }));
+  if (safeHistory.length > 0 && safeHistory[0].role !== 'user') safeHistory.shift();
 
-  if (envData) {
-    prompt += `\n\nSATELLITE & WEATHER DATA FOR ${district ? district : state}: 
-    - Soil Moisture (0-7cm): ${envData.soil_moisture}% 
-    - Recent Daily Rainfall: ${envData.precipitation} mm
-    - Max Temperature: ${envData.temp}°C
-    Based on this LIVE environmental data, proactively suggest if the farmer is at risk and should file a claim under PMFBY (e.g. for drought if moisture is low, or for excess rainfall). Include this naturally in your advice.`;
+  const userContent = [];
+  if (imageBuffer) {
+    userContent.push({
+      image: { format: imageFormat, source: { bytes: imageBuffer } }
+    });
   }
+  userContent.push({ text: sanitizedQuestion });
+
+  const messages = [...safeHistory, { role: "user", content: userContent }];
+
+  let command = new ConverseStreamCommand({
+    modelId: modelId,
+    system: [{ text: systemInstruction }],
+    messages: messages
+  });
 
   try {
-    let result = await invokeBedrock(null, [{ role: "user", content: [{ text: prompt }] }]);
-    // Strip markdown JSON block if model returned it
-    if (result.startsWith('```json')) {
-      result = result.replace(/^```json\n/, '').replace(/\n```$/, '');
-    } else if (result.startsWith('```')) {
-      result = result.replace(/^```\n/, '').replace(/\n```$/, '');
+    let response;
+    try {
+      response = await withRetry(() => client.send(command));
+    } catch (error) {
+      console.warn(`Primary model ${modelId} failed in stream. Falling back to ${FALLBACK_MODEL_ID}. Error: ${error.message}`);
+      command = new ConverseStreamCommand({
+        modelId: FALLBACK_MODEL_ID,
+        system: [{ text: systemInstruction }],
+        messages: messages
+      });
+      response = await client.send(command);
     }
-    return result.trim();
+    
+    for await (const chunk of response.stream) {
+      if (chunk.contentBlockDelta?.delta?.text) {
+        yield chunk.contentBlockDelta.delta.text;
+      }
+    }
+  } catch (error) {
+    console.error('AWS Bedrock stream error:', error.message);
+    yield " Sorry, I am facing technical difficulties connecting to the AI.";
+  }
+}
+
+export async function getInsuranceAdvice(state, district, crop, season, acres, language, envData, modelId = DEFAULT_MODEL_ID) {
+  if (!client) {
+    return JSON.stringify({ risk_level: "Medium", advice: "I am currently unable to provide insurance advice as my AI is not configured." });
+  }
+  
+  const cacheKey = `insurance_${state}_${district}_${crop}_${season}_${acres}_${language}`;
+  const cached = globalCache.get(cacheKey);
+  if (cached && !envData) return cached; // Don't cache if there's live envData influencing it
+
+  const fullLangName = LANG_MAP[language] || 'Hindi';
+  const prompt = getInsuranceAdvicePrompt(state, district, crop, season, acres, envData, fullLangName);
+
+  const toolConfig = {
+    tools: [{
+      toolSpec: {
+        name: "output_insurance_advice",
+        description: "Output the insurance advice strictly as a JSON object.",
+        inputSchema: {
+          json: {
+            type: "object",
+            properties: {
+              risk_level: { type: "string", enum: ["Low", "Medium", "High"] },
+              advice: { type: "string" }
+            },
+            required: ["risk_level", "advice"]
+          }
+        }
+      }
+    }],
+    toolChoice: { tool: { name: "output_insurance_advice" } }
+  };
+
+  try {
+    const result = await invokeBedrock(null, [{ role: "user", content: [{ text: prompt }] }], modelId, toolConfig);
+    const jsonStr = JSON.stringify(result);
+    if (!envData) globalCache.set(cacheKey, jsonStr);
+    return jsonStr;
   } catch (error) {
     console.error('AWS Bedrock error:', error.message);
-    if (error.message.includes('ThrottlingException')) {
+    const isThrottling = error.name === 'ThrottlingException' || error.message.includes('ThrottlingException');
+    if (isThrottling) {
       return JSON.stringify({
         risk_level: "Medium",
         advice: `[Mock AI Response - API Quota Exceeded]:\n1. Scheme: Pradhan Mantri Fasal Bima Yojana (PMFBY) covers ${crop} in ${state}.\n2. Premium: Typically 2% for Kharif, 1.5% for Rabi, and 5% for commercial/horticultural crops.\n3. Documents: Aadhar, Land Record (7/12), Bank Passbook, Sowing Certificate.\n4. Enrollment: Visit nearest CSC center or bank branch with documents before cutoff date.\n5. Claims: Report crop loss within 72 hours via the Crop Insurance App or toll-free number.`
@@ -120,98 +228,96 @@ export async function getInsuranceAdvice(state, district, crop, season, acres, l
   }
 }
 
-export async function getWeatherRecommendation(temp, conditionDescription, language) {
+export async function getWeatherRecommendation(temp, conditionDescription, language, modelId = DEFAULT_MODEL_ID) {
   if (!client) {
     return "Weather recommendation unavailable (No API key).";
   }
 
-  const fullLangName = LANG_MAP[language] || 'Hindi';
+  const cacheKey = `weather_${temp}_${conditionDescription}_${language}`;
+  const cached = globalCache.get(cacheKey);
+  if (cached) return cached;
 
-  const prompt = `You are KisanSaathi, a senior agricultural scientist. 
-Current weather for the farmer: Temperature is ${temp}°C, Condition is: ${conditionDescription}.
-Provide a comprehensive and detailed action plan based on this current weather.
-Use bold headings and bullet points for readability.
-Explain the immediate impact of this weather on soil and crops.
-Detail specific preventative measures for diseases/pests associated with this weather (e.g., fungal diseases during high humidity, heat stress during high temp).
-Give a clear timeline and guidelines for when to resume spraying, fertilizer application, or irrigation.
-Respond STRICTLY in ${fullLangName}. Do not include English unless necessary.`;
+  const fullLangName = LANG_MAP[language] || 'Hindi';
+  const prompt = getWeatherRecommendationPrompt(temp, conditionDescription, fullLangName);
 
   try {
-    return await invokeBedrock(null, [{ role: "user", content: [{ text: prompt }] }]);
+    const response = await invokeBedrock(null, [{ role: "user", content: [{ text: prompt }] }], modelId);
+    globalCache.set(cacheKey, response);
+    return response;
   } catch (error) {
     console.error('AWS Bedrock weather error:', error.message);
     return "Check your crops regularly and follow local weather advisories.";
   }
 }
 
-export async function parseTelegramQuery(text) {
+export async function parseTelegramQuery(text, modelId = DEFAULT_MODEL_ID) {
   if (!client) {
     return null;
   }
 
-  const prompt = `You are an AI assistant for an Indian agriculture Telegram bot.
-A user sent the following message: "${text}"
+  const sanitizedText = sanitizeInput(text);
+  const prompt = getParseTelegramQueryPrompt(sanitizedText);
 
-Your task is to:
-1. Detect the language of the message (e.g., 'Hindi', 'Tamil', 'English', etc).
-2. Identify the crop/commodity being asked for and translate it to English.
-3. Identify the district/city being asked for and translate it to English.
-
-Return ONLY a raw JSON object with no markdown formatting or backticks, exactly like this:
-{"language": "detected_language", "commodity": "english_crop_name", "district": "english_district_name"}`;
+  const toolConfig = {
+    tools: [{
+      toolSpec: {
+        name: "output_parsed_query",
+        description: "Output the parsed query strictly as a JSON object.",
+        inputSchema: {
+          json: {
+            type: "object",
+            properties: {
+              language: { type: "string" },
+              commodity: { type: "string" },
+              district: { type: "string" }
+            },
+            required: ["language", "commodity", "district"]
+          }
+        }
+      }
+    }],
+    toolChoice: { tool: { name: "output_parsed_query" } }
+  };
 
   try {
-    let result = await invokeBedrock(null, [{ role: "user", content: [{ text: prompt }] }]);
-    if (result.startsWith('```json')) {
-      result = result.replace(/^```json\n/, '').replace(/\n```$/, '');
-    } else if (result.startsWith('```')) {
-      result = result.replace(/^```\n/, '').replace(/\n```$/, '');
-    }
-    return JSON.parse(result.trim());
+    return await invokeBedrock(null, [{ role: "user", content: [{ text: prompt }] }], modelId, toolConfig);
   } catch (error) {
     console.error('AWS Bedrock parseTelegramQuery error:', error.message);
     return null;
   }
 }
 
-export async function translateTelegramResponse(text, targetLanguage) {
+export async function translateTelegramResponse(text, targetLanguage, modelId = DEFAULT_MODEL_ID) {
   if (!client || !targetLanguage || targetLanguage.toLowerCase() === 'english') {
     return text;
   }
+  
+  // Base64 encoding the text to create a safe cache key
+  const cacheKey = `translate_${Buffer.from(text).toString('base64').substring(0, 50)}_${targetLanguage}`;
+  const cached = globalCache.get(cacheKey);
+  if (cached) return cached;
 
-  const prompt = `You are a translator for an agricultural bot.
-Translate the following Markdown-formatted message into ${targetLanguage}.
-Keep all the emojis intact. Keep the Markdown formatting intact (like bolding with ** or \`).
-Only translate the text. Do not add any extra commentary.
-
-Message to translate:
-${text}`;
+  const prompt = getTranslateTelegramResponsePrompt(text, targetLanguage);
 
   try {
-    return await invokeBedrock(null, [{ role: "user", content: [{ text: prompt }] }]);
+    const response = await invokeBedrock(null, [{ role: "user", content: [{ text: prompt }] }], modelId);
+    globalCache.set(cacheKey, response);
+    return response;
   } catch (error) {
     console.error('AWS Bedrock translateTelegramResponse error:', error.message);
     return text; // fallback to English
   }
 }
 
-export async function getCostTrackerAdvice(summary, language) {
+export async function getCostTrackerAdvice(summary, language, modelId = DEFAULT_MODEL_ID) {
   if (!client) {
     return "AI is not configured. Please add the AWS Bedrock API key.";
   }
   const fullLangName = LANG_MAP[language] || 'Hindi';
-
-  const prompt = `You are an expert agricultural economist and financial advisor for an Indian farmer. Respond in ${fullLangName}. Use markdown formatting with bold headings and bullet points for readability.
-The farmer has the following expense breakdown:
-${summary.map(s => `- ${s.category}: ₹${s.total}`).join('\n')}
-
-Based on this breakdown, provide a comprehensive financial audit of their expenses. 
-Identify specific areas where costs are disproportionately high. 
-Provide detailed, actionable, and practical cost-saving techniques (e.g., transition to specific organic fertilizers, leveraging government subsidies for machinery, optimized irrigation techniques).
-Explain *why* these techniques will save money and improve their long-term income stability.`;
+  const prompt = getCostTrackerAdvicePrompt(summary, fullLangName);
 
   try {
-    return await invokeBedrock(null, [{ role: "user", content: [{ text: prompt }] }]);
+    return await invokeBedrock(null, [{ role: "user", content: [{ text: prompt }] }], modelId);
   } catch (error) {
     console.error('AWS Bedrock getCostTrackerAdvice error:', error.message);
     return "Check your major expenses and consult local extension officers for cost-saving techniques.";

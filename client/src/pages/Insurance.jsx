@@ -10,12 +10,14 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import TypewriterText from '../components/TypewriterText';
 
 export default function Insurance() {
   const { t } = useTranslation();
   const [language] = useLanguage();
   const [loading, setLoading] = useState(false);
   const [advice, setAdvice] = useState(null);
+  const [isTypingAdvice, setIsTypingAdvice] = useState(false);
   
   const [form, setForm] = useState({
     state: '',
@@ -39,6 +41,7 @@ export default function Insurance() {
     try {
       const res = await api.post('/insurance/advise', { ...form, language });
       setAdvice(res.data);
+      setIsTypingAdvice(true);
       toast.success('Insurance advice generated');
     } catch (err) {
       console.error(err);
@@ -55,7 +58,7 @@ export default function Insurance() {
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('Crop Insurance Advisor')}</h1>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100">
         <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('State')}</label>
@@ -124,7 +127,11 @@ export default function Insurance() {
             )}
           </div>
           <div className="text-amber-900 prose prose-sm sm:prose-base max-w-none prose-headings:text-amber-900 prose-a:text-amber-700 prose-strong:text-amber-900 overflow-hidden">
-            <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{advice.advice}</ReactMarkdown>
+            {isTypingAdvice ? (
+              <TypewriterText text={advice.advice} onComplete={() => setIsTypingAdvice(false)} />
+            ) : (
+              <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{advice.advice}</ReactMarkdown>
+            )}
           </div>
         </div>
       )}

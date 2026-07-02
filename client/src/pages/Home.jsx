@@ -1,3 +1,4 @@
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { IndianRupee, MessageSquareText, ShieldCheck, Calculator } from 'lucide-react';
 import { useTranslation } from '../hooks/useTranslation';
@@ -39,23 +40,24 @@ export default function Home() {
   return (
     <div className="py-8">
       <div className="text-center mb-8 sm:mb-12 px-2 sm:px-0">
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4 leading-tight">{t('Empowering Indian Farmers')}</h1>
-        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+        <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-2 sm:mb-4 leading-tight">{t('Empowering Indian Farmers')}</h1>
+        <p className="text-sm sm:text-lg text-gray-600 max-w-2xl mx-auto px-2">
           {t('KisanSaathi is your one-stop platform for live mandi prices, AI-driven farming advice, insurance guidance, and expense tracking.')}
         </p>
       </div>
 
       <WeatherWidget />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 max-w-4xl mx-auto px-2 sm:px-0">
+      <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 sm:gap-6 max-w-4xl mx-auto px-2 sm:px-0">
         {features.map((f, i) => (
           <Link key={i} to={f.link} className="block group">
-            <div className={`p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all h-full ${f.color}`}>
-              <div className="bg-white w-16 h-16 rounded-xl flex items-center justify-center mb-4 shadow-sm group-hover:scale-105 transition-transform">
-                {f.icon}
+            <div className={`p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all h-full flex flex-col ${f.color}`}>
+              <div className="bg-white w-12 h-12 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center mb-3 sm:mb-4 shadow-sm group-hover:scale-105 transition-transform shrink-0">
+                {/* Clone element to adjust icon size for mobile */}
+                {React.cloneElement(f.icon, { className: 'w-6 h-6 sm:w-8 sm:h-8 ' + f.icon.props.className.replace('w-8 h-8 ', '') })}
               </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">{f.title}</h2>
-              <p className="text-gray-600">{f.desc}</p>
+              <h2 className="text-base sm:text-2xl font-bold text-gray-800 mb-1 sm:mb-2">{f.title}</h2>
+              <p className="text-xs sm:text-base text-gray-600 line-clamp-2 sm:line-clamp-none">{f.desc}</p>
             </div>
           </Link>
         ))}

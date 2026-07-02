@@ -36,7 +36,7 @@ export const askAdvisory = async (req, res, next) => {
       const meteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lng}&daily=temperature_2m_max,precipitation_sum&current=soil_moisture_0_to_7cm&timezone=Asia/Kolkata`;
       const response = await axios.get(meteoUrl);
       envData = {
-        soil_moisture: response.data.current.soil_moisture_0_to_7cm,
+        soil_moisture: Math.round((response.data.current.soil_moisture_0_to_7cm || 0) * 100),
         precipitation: response.data.daily.precipitation_sum[0] || 0,
         temp: response.data.daily.temperature_2m_max[0] || 35
       };

@@ -10,6 +10,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import TypewriterText from '../components/TypewriterText';
 
 const CATEGORIES = ['Seeds', 'Fertilizer', 'Pesticides', 'Labour', 'Irrigation', 'Machinery', 'Other'];
 const COLORS = ['#166534', '#15803d', '#16a34a', '#22c55e', '#4ade80', '#86efac', '#bbf7d0'];
@@ -20,6 +21,7 @@ export default function CostTracker() {
   const [summary, setSummary] = useState([]);
   const [aiAdvice, setAiAdvice] = useState('');
   const [loadingAdvice, setLoadingAdvice] = useState(false);
+  const [isTypingAdvice, setIsTypingAdvice] = useState(false);
   const [sessionId] = useState(() => localStorage.getItem('kisan_session') || crypto.randomUUID());
   const [language] = useLanguage();
   
@@ -46,6 +48,7 @@ export default function CostTracker() {
     try {
       const adviceRes = await api.get(`/costs/ai-advice?session_id=${sessionId}&language=${language}`);
       setAiAdvice(adviceRes.data.advice || '');
+      setIsTypingAdvice(true);
     } catch (err) {
       console.error(err);
     } finally {
@@ -139,8 +142,8 @@ export default function CostTracker() {
               <div>
                 <label className="block text-sm text-gray-700 mb-1">{t('Expected Yield')}</label>
                 <div className="flex gap-2">
-                  <input type="number" className="flex-1 p-2 border rounded" value={projection.yield} onChange={e => setProjection({...projection, yield: e.target.value})} />
-                  <select className="p-2 border rounded bg-gray-50 text-sm font-medium" value={projection.unit} onChange={e => setProjection({...projection, unit: e.target.value})}>
+                  <input type="number" className="flex-1 min-w-0 p-2 border rounded" value={projection.yield} onChange={e => setProjection({...projection, yield: e.target.value})} />
+                  <select className="shrink-0 p-2 border rounded bg-gray-50 text-sm font-medium" value={projection.unit} onChange={e => setProjection({...projection, unit: e.target.value})}>
                     <option value="Quintals">{t('Quintals')}</option>
                     <option value="kg">{t('kg')}</option>
                   </select>
@@ -155,18 +158,18 @@ export default function CostTracker() {
         </div>
 
         <div className="lg:col-span-2 space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="bg-red-50 p-6 rounded-2xl border border-red-100">
-              <p className="text-red-800 text-sm font-semibold mb-1">{t('Total Expenses')}</p>
-              <p className="text-3xl font-bold text-red-900">₹{totalCost.toFixed(2)}</p>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            <div className="bg-red-50 p-4 sm:p-6 rounded-2xl border border-red-100 flex flex-col justify-center">
+              <p className="text-red-800 text-xs sm:text-sm font-semibold mb-1">{t('Total Expenses')}</p>
+              <p className="text-lg sm:text-3xl font-bold text-red-900 truncate">₹{totalCost.toFixed(2)}</p>
             </div>
-            <div className="bg-green-50 p-6 rounded-2xl border border-green-100">
-              <p className="text-green-800 text-sm font-semibold mb-1">{t('Projected Revenue')}</p>
-              <p className="text-3xl font-bold text-green-900">₹{projectedRevenue.toFixed(2)}</p>
+            <div className="bg-green-50 p-4 sm:p-6 rounded-2xl border border-green-100 flex flex-col justify-center">
+              <p className="text-green-800 text-xs sm:text-sm font-semibold mb-1">{t('Projected Revenue')}</p>
+              <p className="text-lg sm:text-3xl font-bold text-green-900 truncate">₹{projectedRevenue.toFixed(2)}</p>
             </div>
-            <div className={`p-6 rounded-2xl border ${estimatedProfit >= 0 ? 'bg-blue-50 border-blue-100' : 'bg-orange-50 border-orange-100'}`}>
-              <p className={`text-sm font-semibold mb-1 ${estimatedProfit >= 0 ? 'text-blue-800' : 'text-orange-800'}`}>{t('Estimated Profit/Loss')}</p>
-              <p className={`text-3xl font-bold ${estimatedProfit >= 0 ? 'text-blue-900' : 'text-orange-900'}`}>
+            <div className={`col-span-2 lg:col-span-1 p-4 sm:p-6 rounded-2xl border flex flex-col justify-center ${estimatedProfit >= 0 ? 'bg-blue-50 border-blue-100' : 'bg-orange-50 border-orange-100'}`}>
+              <p className={`text-xs sm:text-sm font-semibold mb-1 ${estimatedProfit >= 0 ? 'text-blue-800' : 'text-orange-800'}`}>{t('Estimated Profit/Loss')}</p>
+              <p className={`text-xl sm:text-3xl font-bold truncate ${estimatedProfit >= 0 ? 'text-blue-900' : 'text-orange-900'}`}>
                 {estimatedProfit >= 0 ? '+' : '-'}₹{Math.abs(estimatedProfit).toFixed(2)}
               </p>
             </div>
@@ -201,7 +204,11 @@ export default function CostTracker() {
             </div>
             {aiAdvice ? (
               <div className="text-purple-900 prose prose-sm sm:prose-base max-w-none prose-headings:text-purple-900 prose-a:text-purple-700 prose-strong:text-purple-900 overflow-hidden">
-                <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{aiAdvice}</ReactMarkdown>
+                {isTypingAdvice ? (
+                  <TypewriterText text={aiAdvice} onComplete={() => setIsTypingAdvice(false)} />
+                ) : (
+                  <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{aiAdvice}</ReactMarkdown>
+                )}
               </div>
             ) : (
               <p className="text-purple-600 italic text-sm">{t('Loading AI suggestions...')}</p>

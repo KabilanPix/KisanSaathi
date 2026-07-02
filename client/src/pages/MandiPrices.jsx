@@ -63,8 +63,8 @@ export default function MandiPrices() {
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('Live Mandi Prices')}</h1>
       </div>
       
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <form onSubmit={handleSearch} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+      <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100">
+        <form onSubmit={handleSearch} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 items-end">
           <div>
             <SearchableSelect 
               label={t('State')}
@@ -104,9 +104,11 @@ export default function MandiPrices() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <h2 className="text-xl font-semibold">{t('Live Mandi Prices')}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex overflow-x-auto pb-4 snap-x snap-mandatory gap-4 -mx-1 px-1 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 sm:overflow-visible no-scrollbar">
               {data.map((record, idx) => (
-                <MandiPriceCard key={idx} data={record} />
+                <div key={idx} className="min-w-[85vw] sm:min-w-0 snap-center shrink-0">
+                  <MandiPriceCard data={record} />
+                </div>
               ))}
             </div>
             
