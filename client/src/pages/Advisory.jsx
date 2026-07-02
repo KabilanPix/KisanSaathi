@@ -75,7 +75,7 @@ export default function Advisory() {
               msg.role === 'user' ? 'bg-primary text-white rounded-tr-sm' : 'bg-white text-gray-800 rounded-tl-sm border border-gray-100'
             }`}>
               {msg.role === 'assistant' && <Bot className="w-6 h-6 shrink-0 mt-1 text-primary" />}
-              <div className="prose prose-sm sm:prose-base max-w-none break-words overflow-hidden">
+              <div className={`prose prose-sm sm:prose-base max-w-none break-words overflow-hidden ${msg.role === 'user' ? 'prose-invert prose-p:text-white prose-headings:text-white' : ''}`}>
                 <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>{msg.content}</ReactMarkdown>
               </div>
               {msg.role === 'user' && <User className="w-6 h-6 shrink-0 mt-1" />}
